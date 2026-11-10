@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pixel Pac-Man</title>
+<style>
+body { background: #000; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; image-rendering: pixelated; }
+canvas { border: 4px solid #333; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<canvas id="game" width="400" height="400"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const grid = 20;
+const maze = [
+  "####################",
+  "#........#.........#",
+  "#.##.###.#.###.##.##",
+  "#...................#",
+  "#.##.#.#####.#.##.##",
+  "#....#...#...#....#",
+  "####.### # ###.####",
+  "   #.#       #.#   ",
+  "####.# ##### #.####",
+  "#........#.........#",
+  "#.##.###.#.###.##.##",
+  "#...................#",
+  "####################"
+];
+let pac = {x:1, y:1, dir:{x:1,y:0}};
+let ghosts = [{x:10,y:6,dir:{x:-1,y:0}}, {x:10,y:8,dir:{x:1,y:0}}];
+let dots = [];
+let score = 0;
+let gameOver = false;
+
+function initDots() {
+  for (let y=0; y<maze.length; y++) {
+    for (let x=0; x<maze[y].length; x++) {
+      if (maze[y][x] === '.') dots.push({x,y});
+    }
+  }
+}
+initDots();
+
+function draw() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0,0,400,400);
+  for (let y=0; y<maze.length; y++) {
+    for (let x=0; x<maze[y].length; x++) {
+      if (maze[y][x] === '#') {
+        ctx.fillStyle = '#00f';
+        ctx.fillRect(x*grid, y*grid, grid, grid);
+      }
+    }
+  }
+  dots.forEach(d => {
+    ctx.fillStyle = '#ff0';
+    ctx.fillRect(d.x*grid+8, d.y*grid+8, 4, 4);
+  });
+  ctx.fillStyle = '#ff0';
+  ctx.beginPath();
+  ctx.arc(pac.x*grid+10, pac.y*grid+10, 8, 0, Math.PI*2);
+  ctx.fill();
+  ghosts.forEach(g => {
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(g.x*grid+2, g.y*grid+2, 16, 16);
+  });
+  ctx.fillStyle = '#fff';
+  ctx.font = '16px monospace';
+  ctx.fillText('Score: '+score, 10, 390);
+  if (gameOver) {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0,0,400,400);
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Game Over! Score: '+score, 200, 200);
+  }
+}
+
+function canMove(x,y) {
+  if (y<0 || y>=maze.length || x<0 || x>=maze[0].length) return false;
+  return maze[y][x] !== '#';
+}
+
+function update() {
+  if (gameOver) return;
+  const nx = pac.x + pac.dir.x;
+  const ny = pac.y + pac.dir.y;
+  if (canMove(nx, ny)) {
+    pac.x = nx; pac.y = ny;
+  }
+  dots = dots.filter(d => {
+    if (d.x === pac.x && d.y === pac.y) { score += 10; return false; }
+    return true;
+  });
+  if (dots.length === 0) { alert('You Win!'); location.reload(); }
+  ghosts.forEach(g => {
+    const dirs = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+    if (Math.random() < 0.1 || !canMove(g.x+g.dir.x, g.y+g.dir.y)) {
+      const possible = dirs.filter(d => canMove(g.x+d.x, g.y+d.y));
+      if (possible.length) g.dir = possible[Math.floor(Math.random()*possible.length)];
+    }
+    if (canMove(g.x+g.dir.x, g.y+g.dir.y)) {
+      g.x += g.dir.x; g.y += g.dir.y;
+    }
+    if (g.x === pac.x && g.y === pac.y) gameOver = true;
+  });
+  draw();
+  setTimeout(update, 200);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp') pac.dir = {x:0,y:-1};
+  if (e.key === 'ArrowDown') pac.dir = {x:0,y:1};
+  if (e.key === 'ArrowLeft') pac.dir = {x:-1,y:0};
+  if (e.key === 'ArrowRight') pac.dir = {x:1,y:0};
+});
+
+draw();
+update();
+</script>
+</body>
+</html>
